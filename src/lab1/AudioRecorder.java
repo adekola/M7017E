@@ -7,9 +7,11 @@ package lab1;
 
 import java.io.File;
 import java.net.URI;
+import java.util.EventObject;
 import java.util.Random;
 import org.gstreamer.Element;
 import org.gstreamer.ElementFactory;
+import org.gstreamer.Event;
 import org.gstreamer.Gst;
 import org.gstreamer.Pad;
 import org.gstreamer.Pipeline;
@@ -26,7 +28,7 @@ import org.gstreamer.media.PipelineMediaPlayer;
  * - setup g-streamer pipeline and call the appropriate methods as required -
  * generate unique file names and save the recorded audio to disk
  */
-public class AudioRecorder extends Pipeline {
+public class AudioRecorder extends Pipeline{
 
     Random random ;
     String folderPath = makeRecordsFolder();
@@ -40,10 +42,6 @@ public class AudioRecorder extends Pipeline {
     public AudioRecorder() {
         super("AudioPipeline");
         random = new Random();
-        //initialize pipeline...
-        //Gst.init("AudioPipeline", null);
-        //set source, sink, filter etc.
-        
         addMany(audiosrc, audioconvert, encoder, mux, filesink);
     }
 
@@ -56,11 +54,14 @@ public class AudioRecorder extends Pipeline {
     }
 
     public boolean Stop() {
-        setState(State.NULL);
+        Event ev =  new Event(new Initializer());
+        
+        setState(State.PAUSED);
         //filesink.dispose();
         return false;
     }
 
+    
     String generateFileName() {
         int num = random.nextInt(10000);
         return String.format("%s/Recording-%d.ogg",folderPath, num);
@@ -75,4 +76,5 @@ public class AudioRecorder extends Pipeline {
        
         return path;
     }
+
 }
