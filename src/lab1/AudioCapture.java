@@ -5,6 +5,7 @@
  */
 package lab1;
 
+import java.util.Vector;
 import org.gstreamer.Gst;
 
 /**
@@ -14,12 +15,15 @@ import org.gstreamer.Gst;
 public class AudioCapture extends javax.swing.JFrame {
 
     AudioRecorder recorder;
+    AudioPlayer player;
+    Vector filesList;
     /**
      * Creates new form AudioCap
      */
     public AudioCapture() {
-        recorder = new AudioRecorder();
+        filesList = new Vector();
         initComponents();
+        Gst.init();
     }
 
     /**
@@ -36,21 +40,32 @@ public class AudioCapture extends javax.swing.JFrame {
         btnPlay = new javax.swing.JButton();
         lblStatus = new javax.swing.JLabel();
         jSlider1 = new javax.swing.JSlider();
-        btnSave = new javax.swing.JButton();
+        btnStopPlayback = new javax.swing.JButton();
         btnRecord = new javax.swing.JToggleButton();
         btnStop = new javax.swing.JToggleButton();
+        spinVolume = new javax.swing.JSpinner();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jScrollPane1.setViewportView(listRecords);
 
-        btnPlay.setText("Play");
+        btnPlay.setText("play");
+        btnPlay.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnPlayActionPerformed(evt);
+            }
+        });
 
         lblStatus.setText("{}");
 
         jSlider1.setValue(0);
 
-        btnSave.setText("Save");
+        btnStopPlayback.setText("stop");
+        btnStopPlayback.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnStopPlaybackActionPerformed(evt);
+            }
+        });
 
         btnRecord.setText("record");
         btnRecord.addActionListener(new java.awt.event.ActionListener() {
@@ -70,31 +85,31 @@ public class AudioCapture extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(layout.createSequentialGroup()
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 449, Short.MAX_VALUE))
-                    .addGroup(layout.createSequentialGroup()
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(btnPlay)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnSave)
-                        .addGap(14, 14, 14)))
-                .addContainerGap())
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(lblStatus)
-                .addGap(20, 20, 20))
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jSlider1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(btnStopPlayback)
+                        .addGap(14, 14, 14))
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnRecord)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btnStop)
-                        .addGap(0, 0, Short.MAX_VALUE)))
+                        .addContainerGap()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(btnRecord)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btnStop)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addComponent(jSlider1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(lblStatus)
+                        .addGap(59, 59, 59)
+                        .addComponent(spinVolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -106,14 +121,16 @@ public class AudioCapture extends javax.swing.JFrame {
                     .addComponent(btnStop))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 215, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(lblStatus)
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblStatus)
+                    .addComponent(spinVolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSlider1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnPlay)
-                    .addComponent(btnSave))
+                    .addComponent(btnStopPlayback))
                 .addContainerGap())
         );
 
@@ -123,20 +140,37 @@ public class AudioCapture extends javax.swing.JFrame {
     private void btnStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopActionPerformed
         // TODO add your handling code here:
         if(recorder.isPlaying()){
+            filesList.add(recorder.getLastRecordedFile());
             recorder.Stop();
             btnStop.setSelected(true);
             btnRecord.setSelected(false);
+            listRecords.setListData(filesList);
+            listRecords.setSelectedIndex(filesList.size()-1);
         }
     }//GEN-LAST:event_btnStopActionPerformed
 
     private void btnRecordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecordActionPerformed
         // TODO add your handling code here:
+        recorder = new AudioRecorder();
         if(!recorder.isPlaying()){
             recorder.Record();
             btnRecord.setSelected(true);
             btnStop.setSelected(false);
         }
+        
     }//GEN-LAST:event_btnRecordActionPerformed
+
+    private void btnPlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPlayActionPerformed
+        // TODO add your handling code here
+        player =  new AudioPlayer();
+        String fileToPlay = (String)filesList.get(listRecords.getSelectedIndex());
+        player.play(fileToPlay);
+        //be able to make updates to the UI based on the progress of play
+    }//GEN-LAST:event_btnPlayActionPerformed
+
+    private void btnStopPlaybackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopPlaybackActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnStopPlaybackActionPerformed
 
      public static void main(String args[]) {
       
@@ -153,19 +187,19 @@ public class AudioCapture extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Home.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(AudioCapture.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Home.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(AudioCapture.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Home.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(AudioCapture.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Home.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(AudioCapture.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
         /* Create and display the form */
-        Gst.init("AudioRecord", args);
         
+
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new AudioCapture().setVisible(true);
@@ -178,11 +212,12 @@ public class AudioCapture extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnPlay;
     private javax.swing.JToggleButton btnRecord;
-    private javax.swing.JButton btnSave;
     private javax.swing.JToggleButton btnStop;
+    private javax.swing.JButton btnStopPlayback;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSlider jSlider1;
     private javax.swing.JLabel lblStatus;
     private javax.swing.JList listRecords;
+    private javax.swing.JSpinner spinVolume;
     // End of variables declaration//GEN-END:variables
 }

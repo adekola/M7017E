@@ -16,6 +16,7 @@ import org.gstreamer.Gst;
 import org.gstreamer.Pad;
 import org.gstreamer.Pipeline;
 import org.gstreamer.State;
+import org.gstreamer.event.EOSEvent;
 import org.gstreamer.media.PipelineMediaPlayer;
 
 /**
@@ -28,9 +29,13 @@ import org.gstreamer.media.PipelineMediaPlayer;
  * - setup g-streamer pipeline and call the appropriate methods as required -
  * generate unique file names and save the recorded audio to disk
  */
-public class AudioRecorder extends Pipeline{
+public class AudioRecorder{
+    
+    String lastRecordedFile;
 
+    
     Random random ;
+    Pipeline pipe;
     String folderPath = makeRecordsFolder();
     Element audiosrc = ElementFactory.make("autoaudiosrc", "mic");
     Element audioconvert = ElementFactory.make("audioconvert", "converter");
@@ -40,31 +45,49 @@ public class AudioRecorder extends Pipeline{
 
 
     public AudioRecorder() {
-        super("AudioPipeline");
+        pipe =  new Pipeline("AudioPipeline");
+        lastRecordedFile = "";
         random = new Random();
-        addMany(audiosrc, audioconvert, encoder, mux, filesink);
     }
 
-    public boolean Record() {
-        String fName = generateFileName();
-        filesink.set("location", fName);
-        linkMany(audiosrc, audioconvert, encoder, mux, filesink);
-        setState(State.PLAYING);
-        return false;
+    public void Record() {
+        if (pipe != null){
+            String fName = generateFileName();
+            filesink.set("location", fName);
+            pipe.addMany(audiosrc, audioconvert, encoder, mux, filesink);
+            Pipeline.linkMany(audiosrc, audioconvert, encoder, mux, filesink);
+            pipe.setState(State.PAUSED);
+            pipe.setState(State.PLAYING);
+        }
+        else{
+            pipe = new Pipeline("AudioPipeline");
+            Record();
+        }
+            
     }
 
-    public boolean Stop() {
-        Event ev =  new Event(new Initializer());
-        
-        setState(State.PAUSED);
-        //filesink.dispose();
-        return false;
+    public void Stop() {
+        if(pipe != null & pipe.getState() == State.PLAYING){
+            pipe.setState(State.NULL);
+            pipe.dispose();
+        }
     }
 
+    public boolean isPlaying(){
+        return pipe.isPlaying();
+    }
+    public String getLastRecordedFile() {
+        return lastRecordedFile;
+    }
+
+    public void setLastRecordedFile(String lastRecordedFile) {
+        this.lastRecordedFile = lastRecordedFile;
+    }
     
     String generateFileName() {
         int num = random.nextInt(10000);
-        return String.format("%s/Recording-%d.ogg",folderPath, num);
+        lastRecordedFile = String.format("%s/Recording-%d.ogg",folderPath, num);
+        return lastRecordedFile;
     }
 
     String makeRecordsFolder() {
