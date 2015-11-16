@@ -39,8 +39,7 @@ public class AudioRecorder{
     String folderPath = makeRecordsFolder();
     Element audiosrc = ElementFactory.make("autoaudiosrc", "mic");
     Element audioconvert = ElementFactory.make("audioconvert", "converter");
-    Element encoder = ElementFactory.make("vorbisenc", "encoder");
-    Element mux = ElementFactory.make("oggmux", "mux");
+    Element encoder = ElementFactory.make("lamemp3enc", "encoder");
     Element filesink = ElementFactory.make("filesink", "filesink");
 
 
@@ -54,8 +53,8 @@ public class AudioRecorder{
         if (pipe != null){
             String fName = generateFileName();
             filesink.set("location", fName);
-            pipe.addMany(audiosrc, audioconvert, encoder, mux, filesink);
-            Pipeline.linkMany(audiosrc, audioconvert, encoder, mux, filesink);
+            pipe.addMany(audiosrc, audioconvert, encoder, filesink);
+            Pipeline.linkMany(audiosrc, audioconvert, encoder, filesink);
             pipe.setState(State.PAUSED);
             pipe.setState(State.PLAYING);
         }
@@ -86,7 +85,7 @@ public class AudioRecorder{
     
     String generateFileName() {
         int num = random.nextInt(10000);
-        lastRecordedFile = String.format("%s/Recording-%d.ogg",folderPath, num);
+        lastRecordedFile = String.format("%s/Recording-%d.mp3",folderPath, num);
         return lastRecordedFile;
     }
 
