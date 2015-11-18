@@ -5,8 +5,20 @@
  */
 package lab1;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.Vector;
+import javax.swing.DefaultBoundedRangeModel;
+import javax.swing.DefaultListModel;
+import javax.swing.JOptionPane;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import org.gstreamer.Bus;
+import org.gstreamer.Format;
 import org.gstreamer.Gst;
+import org.gstreamer.GstObject;
+import org.gstreamer.Pipeline;
+import org.gstreamer.swing.PipelinePositionModel;
 
 /**
  *
@@ -14,16 +26,81 @@ import org.gstreamer.Gst;
  */
 public class AudioCapture extends javax.swing.JFrame {
 
-    AudioRecorder recorder;
-    AudioPlayer player;
-    Vector filesList;
+    CoreApp app;
+    DefaultListModel recordingsListModel;
+    String recordToPlay;
+
+    PipelinePositionModel recorderPosition;
+    PipelinePositionModel playerPosition;
+
     /**
      * Creates new form AudioCap
      */
     public AudioCapture() {
-        filesList = new Vector();
+        Gst.init(); //should this really be here or could it be somewhere else instead?
+        recordingsListModel = new DefaultListModel();
+        app = new CoreApp();
         initComponents();
-        Gst.init();
+        getExistingRecordings();
+        recorderPosition = new PipelinePositionModel(app.getRecorder());
+        playerPosition = new PipelinePositionModel(app.getPlayer());
+
+        setupSliderListener();
+
+        app.getPlayer().getBus().connect(new Bus.EOS() {
+            public void endOfStream(GstObject source) {
+                resetTimingElements();
+                if(app.isAutoPlayBack())
+                    initiateSave();
+            }
+        });
+       
+    }
+
+    private void resetTimingElements() {
+        //reset the slider position and time label
+        positionSlider.setModel(new DefaultBoundedRangeModel());
+        lblTimeLapse.setText("0:00:00");
+    }
+
+    private void setupSliderListener() {
+        this.positionSlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                updateTimeLabel();
+            }
+        });
+    }
+
+    void updateTimeLabel() {
+        Pipeline activePipeline = new Pipeline();
+
+        if (app.isPlaying()) {
+            activePipeline = app.getPlayer();
+        } else if (app.isRecording()) {
+            activePipeline = app.getRecorder();
+        }
+
+        long currPosition = activePipeline.queryPosition(Format.TIME);
+
+        currPosition = currPosition / 1000000000L;
+        lblTimeLapse.setText(String.format("%d:%02d:%02d", currPosition / 3600, (currPosition % 3600) / 60, (currPosition % 3600)));
+
+    }
+
+    void getExistingRecordings() {
+        String recordsFolder = app.getRecordingsFolderPath();
+
+        File folder = new File(recordsFolder);
+
+        File[] recordings = folder.listFiles(new OggFilter());
+
+        for (File file : recordings) {
+            String fileName = file.getName();
+            recordingsListModel.addElement(fileName.substring(0, fileName.length() - 4));//knocks off the extension..or maybe it's fine to have it 
+        }
+
+        listRecords.setModel(recordingsListModel);
     }
 
     /**
@@ -37,33 +114,30 @@ public class AudioCapture extends javax.swing.JFrame {
 
         jScrollPane1 = new javax.swing.JScrollPane();
         listRecords = new javax.swing.JList();
-        btnPlay = new javax.swing.JButton();
-        lblStatus = new javax.swing.JLabel();
-        jSlider1 = new javax.swing.JSlider();
-        btnStopPlayback = new javax.swing.JButton();
+        positionSlider = new javax.swing.JSlider();
         btnRecord = new javax.swing.JToggleButton();
         btnStop = new javax.swing.JToggleButton();
-        spinVolume = new javax.swing.JSpinner();
+        lblTimeLapse = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Audio Recorder 1.0");
 
-        jScrollPane1.setViewportView(listRecords);
-
-        btnPlay.setText("play");
-        btnPlay.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnPlayActionPerformed(evt);
+        listRecords.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                listRecordsMouseClicked(evt);
             }
         });
+        listRecords.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+                listRecordsValueChanged(evt);
+            }
+        });
+        jScrollPane1.setViewportView(listRecords);
 
-        lblStatus.setText("{}");
-
-        jSlider1.setValue(0);
-
-        btnStopPlayback.setText("stop");
-        btnStopPlayback.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnStopPlaybackActionPerformed(evt);
+        positionSlider.setValue(0);
+        positionSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                positionSliderStateChanged(evt);
             }
         });
 
@@ -81,6 +155,8 @@ public class AudioCapture extends javax.swing.JFrame {
             }
         });
 
+        lblTimeLapse.setText("HH:mm:ss");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -89,13 +165,7 @@ public class AudioCapture extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGap(12, 12, 12)
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 449, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btnPlay)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnStopPlayback)
-                        .addGap(14, 14, 14))
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 452, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -104,12 +174,10 @@ public class AudioCapture extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(btnStop)
                                 .addGap(0, 0, Short.MAX_VALUE))
-                            .addComponent(jSlider1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                            .addComponent(positionSlider, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(lblStatus)
-                        .addGap(59, 59, 59)
-                        .addComponent(spinVolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(lblTimeLapse)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -121,17 +189,11 @@ public class AudioCapture extends javax.swing.JFrame {
                     .addComponent(btnStop))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 215, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(lblStatus)
-                    .addComponent(spinVolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(40, 40, 40)
+                .addComponent(lblTimeLapse)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jSlider1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnPlay)
-                    .addComponent(btnStopPlayback))
-                .addContainerGap())
+                .addComponent(positionSlider, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
@@ -139,41 +201,64 @@ public class AudioCapture extends javax.swing.JFrame {
 
     private void btnStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopActionPerformed
         // TODO add your handling code here:
-        if(recorder.isPlaying()){
-            filesList.add(recorder.getLastRecordedFile());
-            recorder.Stop();
-            btnStop.setSelected(true);
-            btnRecord.setSelected(false);
-            listRecords.setListData(filesList);
-            listRecords.setSelectedIndex(filesList.size()-1);
-        }
+        btnStop.setSelected(true);
+        btnRecord.setSelected(false);
+        app.stopRecording();
+        this.positionSlider.setModel(playerPosition);
     }//GEN-LAST:event_btnStopActionPerformed
 
     private void btnRecordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecordActionPerformed
         // TODO add your handling code here:
-        recorder = new AudioRecorder();
-        if(!recorder.isPlaying()){
-            recorder.Record();
-            btnRecord.setSelected(true);
-            btnStop.setSelected(false);
-        }
-        
+        btnRecord.setSelected(true);
+        btnStop.setSelected(false);
+        this.positionSlider.setModel(recorderPosition);
+        app.startRecording();
     }//GEN-LAST:event_btnRecordActionPerformed
 
-    private void btnPlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPlayActionPerformed
-        // TODO add your handling code here
-        player =  new AudioPlayer();
-        String fileToPlay = (String)filesList.get(listRecords.getSelectedIndex());
-        player.play(fileToPlay);
-        //be able to make updates to the UI based on the progress of play
-    }//GEN-LAST:event_btnPlayActionPerformed
-
-    private void btnStopPlaybackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopPlaybackActionPerformed
+    private void initiateSave() {
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnStopPlaybackActionPerformed
+        String defaultFileName = app.generateDefaultFileName();
+        String fileName = JOptionPane.showInputDialog(this, "Please enter a file name", defaultFileName);
+        if (fileName == null) {
+            app.disposeLastRecording();
+            resetTimingElements();
+        } else {
+            if (fileName.equals("")) {
+                fileName = defaultFileName;
+            }
+            
+            app.renameLastRecord(fileName);
+            //update the list of files showing in the list
+            recordingsListModel.addElement(fileName);
+            resetTimingElements();
+        }
+    }
 
-     public static void main(String args[]) {
-      
+    private void listRecordsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_listRecordsMouseClicked
+        // TODO add your handling code here:
+        if (evt.getClickCount() == 2) { // a user clicks twice = Double click
+            app.stopPlayback(); //first stop the currently playing process
+
+            recordToPlay = (String) listRecords.getSelectedValue();
+            this.positionSlider.setModel(playerPosition);
+            app.startPlayback(recordToPlay);
+        }
+    }//GEN-LAST:event_listRecordsMouseClicked
+
+    private void listRecordsValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_listRecordsValueChanged
+        // TODO add your handling code here:
+        if (!evt.getValueIsAdjusting()) { //checks that the value changing event is the last in the chain in this case, the mouse up during a click action
+            recordToPlay = (String) listRecords.getSelectedValue();
+        }
+    }//GEN-LAST:event_listRecordsValueChanged
+
+    private void positionSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_positionSliderStateChanged
+        // TODO add your handling code here:
+
+    }//GEN-LAST:event_positionSliderStateChanged
+
+    public static void main(String args[]) {
+
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -198,26 +283,35 @@ public class AudioCapture extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        
-
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new AudioCapture().setVisible(true);
             }
         });
-        
-        //Gst.main();
+    }
+
+    class OggFilter implements FilenameFilter {
+
+        @Override
+        public boolean accept(File file, String fileName) {
+            return fileName.endsWith(".ogg");
+        }
+    }
+
+    class Mp3Filter implements FilenameFilter {
+
+        @Override
+        public boolean accept(File file, String fileName) {
+            return fileName.endsWith(".mp3");
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnPlay;
     private javax.swing.JToggleButton btnRecord;
     private javax.swing.JToggleButton btnStop;
-    private javax.swing.JButton btnStopPlayback;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JSlider jSlider1;
-    private javax.swing.JLabel lblStatus;
+    private javax.swing.JLabel lblTimeLapse;
     private javax.swing.JList listRecords;
-    private javax.swing.JSpinner spinVolume;
+    private javax.swing.JSlider positionSlider;
     // End of variables declaration//GEN-END:variables
 }
