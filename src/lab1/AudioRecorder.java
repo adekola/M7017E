@@ -37,12 +37,7 @@ import org.gstreamer.media.PipelineMediaPlayer;
  * generate unique file names and save the recorded audio to disk
  */
 public class AudioRecorder extends Pipeline{
-    
 
-    
-    Random random ;
-    
-    
     Element audiosrc = ElementFactory.make("autoaudiosrc", "mic");
     Element audioconvert = ElementFactory.make("audioconvert", "converter");
     Element encoder = ElementFactory.make("vorbisenc", "encoder");
@@ -57,5 +52,9 @@ public class AudioRecorder extends Pipeline{
     
     public void setFileLocation(String filename){
         filesink.setLocation(filename);
+    }
+    
+    public void setQuality(float quality){
+        encoder.set("quality", quality);
     }
 }

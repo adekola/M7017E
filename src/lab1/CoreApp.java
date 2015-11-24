@@ -36,7 +36,8 @@ public class CoreApp {
     private boolean isPlaying;
     private boolean isRecording;
     private boolean autoPlayBack = false;
-
+    private Settings settings;
+    
     public boolean isAutoPlayBack() {
         return autoPlayBack;
     }
@@ -70,6 +71,7 @@ public class CoreApp {
         player = new PlayBin2("player");
         recordingsFolderPath = createRecordsFolder();
         isPlaying = isRecording = false;
+        settings = new Settings();
 
         //arange to receive notifications from the message bus
         player.getBus().connect(new Bus.ERROR() {
@@ -100,6 +102,10 @@ public class CoreApp {
         });
     }
 
+    public Settings getSettings() {
+        return settings;
+    }
+
     void logMessagesToConsole(int code, String msg) {
         System.out.println(String.format("Received an error code: %s with message %s", code, msg));
     }
@@ -111,6 +117,7 @@ public class CoreApp {
 
         recordFileName = createAbsoluteFileName(TEMP_FILE_NAME);
         recorder.setFileLocation(recordFileName);
+        recorder.setQuality(settings.getQuality());
         recorder.play();
         isRecording = true;
     }
@@ -157,10 +164,15 @@ public class CoreApp {
     }
 
     //renames the temp record
-    public void renameLastRecord(String filename) {
+    public boolean renameLastRecord(String filename) {
         filename = createAbsoluteFileName(filename);
 
-        new File(createAbsoluteFileName(TEMP_FILE_NAME)).renameTo(new File(createAbsoluteFileName(filename)));
+        new File(createAbsoluteFileName(TEMP_FILE_NAME)).renameTo(new File(filename));
+         
+        //check the file
+        File file =  new File(filename);
+        
+        return file.exists();
     }
 
     //generates a default file name to show in the dialog for saving recorded files - without extension

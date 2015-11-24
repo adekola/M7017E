@@ -5,6 +5,8 @@
  */
 package lab1;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Vector;
@@ -41,6 +43,7 @@ public class AudioCapture extends javax.swing.JFrame {
         recordingsListModel = new DefaultListModel();
         app = new CoreApp();
         initComponents();
+        this.setLocationRelativeTo(null);
         getExistingRecordings();
         recorderPosition = new PipelinePositionModel(app.getRecorder());
         playerPosition = new PipelinePositionModel(app.getPlayer());
@@ -49,15 +52,17 @@ public class AudioCapture extends javax.swing.JFrame {
 
         app.getPlayer().getBus().connect(new Bus.EOS() {
             public void endOfStream(GstObject source) {
-                resetTimingElements();
-                if(app.isAutoPlayBack())
+                resetElements();
+                if (app.isAutoPlayBack()) {
                     initiateSave();
+                }
             }
         });
-       
+
     }
 
-    private void resetTimingElements() {
+
+    private void resetElements() {
         //reset the slider position and time label
         positionSlider.setModel(new DefaultBoundedRangeModel());
         lblTimeLapse.setText("0:00:00");
@@ -89,14 +94,18 @@ public class AudioCapture extends javax.swing.JFrame {
     }
 
     void getExistingRecordings() {
+
         String recordsFolder = app.getRecordingsFolderPath();
 
         File folder = new File(recordsFolder);
 
-        File[] recordings = folder.listFiles(new OggFilter());
+        File[] recordings = folder.listFiles(new OggFilter()); //this will be picked from the preferences feature 
 
         for (File file : recordings) {
             String fileName = file.getName();
+            if (fileName.contains("temp")) {
+                continue;
+            }
             recordingsListModel.addElement(fileName.substring(0, fileName.length() - 4));//knocks off the extension..or maybe it's fine to have it 
         }
 
@@ -118,6 +127,9 @@ public class AudioCapture extends javax.swing.JFrame {
         btnRecord = new javax.swing.JToggleButton();
         btnStop = new javax.swing.JToggleButton();
         lblTimeLapse = new javax.swing.JLabel();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        aboutMenuItem = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Audio Recorder 1.0");
@@ -156,6 +168,29 @@ public class AudioCapture extends javax.swing.JFrame {
         });
 
         lblTimeLapse.setText("HH:mm:ss");
+
+        jMenu1.setText("Preferences");
+        jMenu1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jMenu1MouseClicked(evt);
+            }
+        });
+        jMenuBar1.add(jMenu1);
+
+        aboutMenuItem.setText("About");
+        aboutMenuItem.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                aboutMenuItemMouseClicked(evt);
+            }
+        });
+        aboutMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                aboutMenuItemActionPerformed(evt);
+            }
+        });
+        jMenuBar1.add(aboutMenuItem);
+
+        setJMenuBar(jMenuBar1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -203,36 +238,40 @@ public class AudioCapture extends javax.swing.JFrame {
         // TODO add your handling code here:
         btnStop.setSelected(true);
         btnRecord.setSelected(false);
-        app.stopRecording();
         this.positionSlider.setModel(playerPosition);
+        app.stopRecording();
     }//GEN-LAST:event_btnStopActionPerformed
 
     private void btnRecordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecordActionPerformed
         // TODO add your handling code here:
         btnRecord.setSelected(true);
         btnStop.setSelected(false);
-        this.positionSlider.setModel(recorderPosition);
         app.startRecording();
+        this.positionSlider.setModel(recorderPosition);
     }//GEN-LAST:event_btnRecordActionPerformed
 
     private void initiateSave() {
         // TODO add your handling code here:
         String defaultFileName = app.generateDefaultFileName();
         String fileName = JOptionPane.showInputDialog(this, "Please enter a file name", defaultFileName);
-        if (fileName == null) {
+
+        if (fileName == null) { //cancel button was pressed
             app.disposeLastRecording();
-            resetTimingElements();
-        } else {
-            if (fileName.equals("")) {
-                fileName = defaultFileName;
-            }
-            
+            resetElements();
+        } else if (fileName.isEmpty()) { //user cleared the content of the filenam textbox
+            fileName = defaultFileName;
             app.renameLastRecord(fileName);
             //update the list of files showing in the list
             recordingsListModel.addElement(fileName);
-            resetTimingElements();
+            resetElements();
+        } else {
+            app.renameLastRecord(fileName);
+            //update the list of files showing in the list
+            recordingsListModel.addElement(fileName);
+            resetElements();
         }
     }
+
 
     private void listRecordsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_listRecordsMouseClicked
         // TODO add your handling code here:
@@ -256,6 +295,28 @@ public class AudioCapture extends javax.swing.JFrame {
         // TODO add your handling code here:
 
     }//GEN-LAST:event_positionSliderStateChanged
+
+    private void jMenu1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenu1MouseClicked
+        // TODO add your handling code here:
+        //Show the settings dialog
+        SettingsDialog dialog  = new SettingsDialog(this, true, app.getSettings());
+       
+        dialog.setVisible(true);
+    }//GEN-LAST:event_jMenu1MouseClicked
+
+    private void aboutMenuItemMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_aboutMenuItemMouseClicked
+        // TODO add your handling code here:
+        
+    }//GEN-LAST:event_aboutMenuItemMouseClicked
+
+    private void aboutMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutMenuItemActionPerformed
+        // TODO add your handling code here:
+        JOptionPane.showMessageDialog(AudioCapture.this,"This AudioRecorder was gladly developed for \n your pleasurable use by  \n\n\n"+
+                        "- Kola Adebayo and " +
+                        "- Jonathan Pucher \n\n\n" +
+                        "  For the Multimedia Course - M7017E, \n at the Lulea Uni. of Technology, Fall 2015", null,
+                        JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_aboutMenuItemActionPerformed
 
     public static void main(String args[]) {
 
@@ -307,8 +368,11 @@ public class AudioCapture extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenu aboutMenuItem;
     private javax.swing.JToggleButton btnRecord;
     private javax.swing.JToggleButton btnStop;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lblTimeLapse;
     private javax.swing.JList listRecords;
