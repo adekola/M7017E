@@ -20,30 +20,44 @@ import org.gstreamer.elements.PlayBin2;
  * functionalities in Recorder and Playbin2 to deliver a smooth recording and
  * playback experience
  *
- * The flow goes soemthing like this: - User starts recording, he sees the
+ * The flow goes something like this: - User starts recording, he sees the
  * progress of the recording as it happens, when he's done, stops recording and
- * then is able to playback before deciding to save it to file, for which he has
- * a quick option to rename the file
+ * then playback is automatically initiated, after which he can decide to save 
+ * it to file,with an option to specify the file name
  */
 public class CoreApp {
 
+    //temporary file name to hold the clip before it's finally committed to disk
     private static final String TEMP_FILE_NAME = "temp";
-    private AudioRecorder recorder;
-    private PlayBin2 player;
-    private int recordingsCount = 0;
-
+    
+    //variables specific to g-streamer  
+    private final AudioRecorder recorder;
+    private final PlayBin2 player;
+    
+    
+    //holds the name with which to store the file as it's being recorded or saved to disk after confirmation by the user
     String recordFileName;
+    
+    //boolean fields for tracking the state of the app, playing or recording
     private boolean isPlaying;
     private boolean isRecording;
     private boolean autoPlayBack = false;
-    private Settings settings;
+    
+    //holds a reference to an instance of settings with which user preferences will be persisted
+    private final Settings settings;
+    
+    //a date formatter to use as part of the default filename 
+    private final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
+
+    //holds the folder path on disk where recordings will be saved
+    String recordingsFolderPath;
     
     public boolean isAutoPlayBack() {
         return autoPlayBack;
     }
 
-    private SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
-
+   
+    //getters and setters...nothing special
     public AudioRecorder getRecorder() {
         return recorder;
     }
@@ -60,7 +74,7 @@ public class CoreApp {
         return isRecording;
     }
 
-    String recordingsFolderPath;
+    
 
     public String getRecordingsFolderPath() {
         return recordingsFolderPath;
@@ -106,10 +120,20 @@ public class CoreApp {
         return settings;
     }
 
+    /** Simply prints messages to the standard console
+     * 
+     * @param code - error code number from the gstreamer system
+     * @param msg - error message from the gstreamer system
+     */
     void logMessagesToConsole(int code, String msg) {
         System.out.println(String.format("Received an error code: %s with message %s", code, msg));
     }
 
+    /**
+     * Starts off the recording process
+     * 
+     * Sets the file location and quality of the recorder pipeline to use
+     */
     public void startRecording() {
         if (isRecording) {
             return;
@@ -122,6 +146,9 @@ public class CoreApp {
         isRecording = true;
     }
 
+    /**
+     * Stops the recording process and initiates the auto-playback
+     */
     public void stopRecording() {
         if (!isRecording) {
             return;
@@ -135,8 +162,9 @@ public class CoreApp {
         autoPlayBack = true;
     }
 
-    //expects a string with just filename, it then sets up the path and extensions appropriately
+    //expects a string with just filename, it then sets up the full path and extensions appropriately
     public void startPlayback(String file) {
+        //checks if this playback is triggered from the recording process or initiated by the user selecting a clip to play
         if(autoPlayBack)
             autoPlayBack = false;
         String filename = createAbsoluteFileName(file);
@@ -145,25 +173,46 @@ public class CoreApp {
         isPlaying = true;
     }
 
+    /**
+     * Pauses the playback
+     */
     public void pausePlayback() {
         player.pause();
     }
 
+    /**
+     * Stops the playback completely
+     */
     public void stopPlayback() {
         player.stop();
         isPlaying = false;
     }
+    
 
+    /**
+     * Deletes the temp file which holds the clip temporarily...this is done if the user decides not to keep the recording
+     * 
+     */
     public void disposeLastRecording() {
         //dispose the just temp record file
         new File(createAbsoluteFileName(TEMP_FILE_NAME)).delete();
     }
 
+    /**
+     * 
+     * @param filename - a filename intended to be created in the Recordings folder
+     * @return a fully qualified file name (including extensions and folder path)
+     */
     public String createAbsoluteFileName(String filename) {
         return recordingsFolderPath + File.separator + filename + ".ogg";
     }
 
-    //renames the temp record
+    /**renames the temp record to the name entered by the user
+     * 
+     * @param filename - the file name supplied by the user, as a string, no file extensions. 
+     * That's taken care of by createAbsoluteFileName
+     * @return a true/false depending on whether it was successfully able to rename the temp file
+     */
     public boolean renameLastRecord(String filename) {
         filename = createAbsoluteFileName(filename);
 
@@ -180,6 +229,10 @@ public class CoreApp {
         return String.format("%s-Recording_%d", dateFormatter.format(new Date()), new Random().nextInt(1000));
     }
 
+    /** Simply creates a folder in the file system into which the clips will be saved
+     * 
+     * @return the path of the recordings folder 
+     */
     String createRecordsFolder() {
         String path = "";
         File dirpath = new File("Recordings");

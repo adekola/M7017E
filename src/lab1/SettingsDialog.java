@@ -17,21 +17,33 @@ public class SettingsDialog extends javax.swing.JDialog {
      * Creates new form SettingsDialog
      */
     
+    
+    /** This is an array of QualityItems to represent the different levels of Quality which can be 
+     * selected by the user for recording a vorbis encoded clip
+     * 
+     */
     private QualityItem[] qualityLevels = new QualityItem[]{
         new QualityItem(0.1f, "Low Quality"), 
         new QualityItem(0.6f, "Medium Quality"),
         new QualityItem(1, "High Quality")
     };
     
+    //reference to the settings instance used by CoreApp
     private Settings settings;
     
     
+    /** Constructor for the Dialog
+     * 
+     * @param parent -  the GUI component which owns this Dialog
+     * @param modal- boolean flag to make the dialog modal or not
+     * @param settings - reference to the settings instance used by CoreApp
+     */
     public SettingsDialog(java.awt.Frame parent, boolean modal, Settings settings) {
         super(parent, modal);
         initComponents();
         
         this.setTitle("Settings");
-        this.setModal(true);
+        this.setModal(modal);
         this.setResizable(false);
         this.setLocationRelativeTo(null); 
         
@@ -60,6 +72,12 @@ public class SettingsDialog extends javax.swing.JDialog {
         }
     }
 
+    /** This method tries to get the index of the quality selected by the
+     * user from the QualityItems array
+     * 
+     * @param quality
+     * @return 
+     */
     int getIndexOfSelectedQuality(float quality){
         int indexFound = 0;
         for(int i = 0; i< qualityLevels.length; i++){
@@ -155,6 +173,8 @@ public class SettingsDialog extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel3;
     // End of variables declaration//GEN-END:variables
 
+    
+    //This class represents the Quality levels selectable by the user
     class QualityItem {
 
         float value;

@@ -28,7 +28,7 @@ import org.gstreamer.media.PipelineMediaPlayer;
 
 /**
  *
- * @author adekola
+ * @author jonathan
  *
  * So, basically this class will be responsible for the tasks associated with
  * Recording an Audio clip and playing it back
@@ -50,10 +50,18 @@ public class AudioRecorder extends Pipeline{
         linkMany(audiosrc, audioconvert, encoder, mux,filesink, null);
     }
     
+    /** Sets the location of the file to which the filesink will write
+     * 
+     * @param filename -  a fully qualified file path to which the clip will be written
+     */
     public void setFileLocation(String filename){
         filesink.setLocation(filename);
     }
     
+    /** Sets the quality property of the vorbis encoder
+     * 
+     * @param quality -  the quality at which the vorbis encoder should encode the clip
+     */
     public void setQuality(float quality){
         encoder.set("quality", quality);
     }
