@@ -61,7 +61,6 @@ public class AudioCapture extends javax.swing.JFrame {
 
     }
 
-
     private void resetElements() {
         //reset the slider position and time label
         positionSlider.setModel(new DefaultBoundedRangeModel());
@@ -249,16 +248,19 @@ public class AudioCapture extends javax.swing.JFrame {
         // TODO add your handling code here:
         btnStop.setSelected(true);
         btnRecord.setSelected(false);
+        resetElements();
         this.positionSlider.setModel(playerPosition);
         app.stopRecording();
     }//GEN-LAST:event_btnStopActionPerformed
 
     private void btnRecordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecordActionPerformed
         // TODO add your handling code here:
-        btnRecord.setSelected(true);
-        btnStop.setSelected(false);
-        app.startRecording();
-        this.positionSlider.setModel(recorderPosition);
+        if (!app.isPlaying() | !app.isRecording()) {
+            btnRecord.setSelected(true);
+            btnStop.setSelected(false);
+            app.startRecording();
+            this.positionSlider.setModel(recorderPosition);
+        }
     }//GEN-LAST:event_btnRecordActionPerformed
 
     private void initiateSave() {
@@ -286,13 +288,16 @@ public class AudioCapture extends javax.swing.JFrame {
 
     private void listRecordsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_listRecordsMouseClicked
         // TODO add your handling code here:
-        if (evt.getClickCount() == 2) { // a user clicks twice = Double click
-            app.stopPlayback(); //first stop the currently playing process
+        if (!app.isRecording() | !app.isPlaying()) { //check if there's no playback or recording in progress
+            if (evt.getClickCount() == 2) { // a user clicks twice = Double click
+                app.stopPlayback(); //first stop the currently playing process
 
-            recordToPlay = (String) listRecords.getSelectedValue();
-            this.positionSlider.setModel(playerPosition);
-            app.startPlayback(recordToPlay);
+                recordToPlay = (String) listRecords.getSelectedValue();
+                this.positionSlider.setModel(playerPosition);
+                app.startPlayback(recordToPlay);
+            }
         }
+
     }//GEN-LAST:event_listRecordsMouseClicked
 
     private void listRecordsValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_listRecordsValueChanged
@@ -310,23 +315,23 @@ public class AudioCapture extends javax.swing.JFrame {
     private void jMenu1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenu1MouseClicked
         // TODO add your handling code here:
         //Show the settings dialog
-        SettingsDialog dialog  = new SettingsDialog(this, true, app.getSettings());
-       
+        SettingsDialog dialog = new SettingsDialog(this, true, app.getSettings());
+
         dialog.setVisible(true);
     }//GEN-LAST:event_jMenu1MouseClicked
 
     private void aboutMenuItemMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_aboutMenuItemMouseClicked
         // TODO add your handling code here:
-        
+
     }//GEN-LAST:event_aboutMenuItemMouseClicked
 
     private void aboutMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutMenuItemActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(AudioCapture.this,"This AudioRecorder was gladly developed for \n your pleasurable use by  \n\n\n"+
-                        "- Kola Adebayo and " +
-                        "- Jonathan Pucher \n\n\n" +
-                        "  For the Multimedia Course - M7017E, \n at the Lulea Uni. of Technology, Fall 2015", null,
-                        JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(AudioCapture.this, "This AudioRecorder was gladly developed for \n your pleasurable use by  \n\n\n"
+                + "- Kola Adebayo and "
+                + "- Jonathan Pucher \n\n\n"
+                + "  For the Multimedia Course - M7017E, \n at the Lulea Uni. of Technology, Fall 2015", null,
+                JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_aboutMenuItemActionPerformed
 
     public static void main(String args[]) {

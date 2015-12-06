@@ -92,6 +92,7 @@ public class CoreApp {
             @Override
             public void errorMessage(GstObject source, int code, String message) {
                 logMessagesToConsole(code, message);
+                isPlaying = false;
             }
         });
         player.getBus().connect(new Bus.WARNING() {
@@ -101,10 +102,24 @@ public class CoreApp {
                 logMessagesToConsole(code, message);
             }
         });
+        player.getBus().connect(new Bus.EOS() {
+            @Override
+            public void endOfStream(GstObject go) {
+                isPlaying = false;
+            }
+        });
+        recorder.getBus().connect(new Bus.EOS() {
+
+            @Override
+            public void endOfStream(GstObject go) {
+                isRecording = false;
+            }
+        });
         recorder.getBus().connect(new Bus.ERROR() {
             @Override
             public void errorMessage(GstObject go, int i, String string) {
                 logMessagesToConsole(i, string);
+                isRecording = false;
             }
         });
         recorder.getBus().connect(new Bus.WARNING() {
@@ -135,7 +150,7 @@ public class CoreApp {
      * Sets the file location and quality of the recorder pipeline to use
      */
     public void startRecording() {
-        if (isRecording) {
+        if (isRecording) { //checks if there is an active pipeline recording or playing back and returns if so
             return;
         }
 
