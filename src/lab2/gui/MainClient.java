@@ -21,17 +21,17 @@ import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.*;
 import org.gstreamer.Gst;
-import lab2.pipelines.ReceivingPipeline;
-import lab2.pipelines.SendingPipeline;
+import lab2.pipelines.ReceivePipeline;
+import lab2.pipelines.TransmitPipeline;
 
 /**
  *
  * @author Kola
  */
-public class ClientMain extends javax.swing.JFrame implements EventListener {
+public class MainClient extends javax.swing.JFrame implements EventListener {
 
     /**
-     * Creates new form ClientMain
+     * Creates new form MainClient
      */
     protected ClientConnect client = null;
     String clientName = null;
@@ -39,28 +39,28 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
     Network.Room[] rooms = null;
     int lastSelected = -1;
     ArrayList<Network.Client> list;
-    GUICaller reciever = null;
-    GUICaller caller = null;
-    GUICalling calling = null;
-    GUICalling recieving = null;
-    GUIMulticast multicast = null;
+    Caller receiver = null;
+    Caller caller = null;
+    Calling calling = null;
+    Calling receiving = null;
+    Multicast multicast = null;
     long ssrc;
-    SendingPipeline transmitterpipe;
-    ReceivingPipeline receiverpipe;
+    TransmitPipeline transmitterpipe;
+    ReceivePipeline receiverpipe;
     Object refreshMsg = null;
 
-    public ClientMain() {
+    public MainClient() {
         initComponents();
         myInitComponents();
-        transmitterpipe = new SendingPipeline();
-        receiverpipe = new ReceivingPipeline();
+        transmitterpipe = new TransmitPipeline();
+        receiverpipe = new ReceivePipeline();
     }
 
     public void fireEvent(int message, Object o) {
 
         switch (message) {
 
-            //new clients liste received
+            //new clients list received
             case Constants.EVT_CLIENT_LIST_RECEIVED:
                 System.out.println("CLIENTS:");
                 list = (ArrayList<Network.Client>) o;
@@ -93,24 +93,24 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                     Network.Message m = (Network.Message) o;
                     System.out.println(m.text + "from " + m.sender.name);
                     if (m.text.equals("calling")) {
-                        reciever(m);
+                        receiver(m);
                     } else if (m.text.equals("dropped")) {
                         callDropped();
                         Window w = SwingUtilities.getWindowAncestor(calling);
                         closeDialog(w);
                     } else if (m.text.equals("ended")) {
                         callDropped();
-                        Window w = SwingUtilities.getWindowAncestor(recieving);
+                        Window w = SwingUtilities.getWindowAncestor(receiving);
                         closeDialog(w);
                     } else if (m.text.equals("recieved")) {
                         if (!receiverpipe.isReceivingFromUnicast()) {
                             receiverpipe.startReceivingFromUnicast();
-                            receiverpipe.printPipeline();
+                            //receiverpipe.printPipeline();
                         }
                     } else if (m.text.equals("rejected")) {
                         if (transmitterpipe.isStreamingToUnicast()) {
                             transmitterpipe.stopStreamingToUnicast();
-                            transmitterpipe.printPipeline();
+                            //transmitterpipe.printPipeline();
                             Window w = SwingUtilities.getWindowAncestor(calling);
                             closeDialog(w);
                         }
@@ -134,7 +134,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new ClientMain().setVisible(true);
+                new MainClient().setVisible(true);
             }
         });
 
@@ -155,7 +155,8 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         lsRoom = new javax.swing.JList();
         jScrollPane2 = new javax.swing.JScrollPane();
         lsRoomClient = new javax.swing.JList();
-        cmdRefresh = new javax.swing.JButton();
+        lblSelectedUser = new javax.swing.JLabel();
+        lblSelectedRoom = new javax.swing.JLabel();
 
         jTree1.setBorder(javax.swing.BorderFactory.createTitledBorder("Chat rooms"));
         javax.swing.tree.DefaultMutableTreeNode treeNode1 = new javax.swing.tree.DefaultMutableTreeNode("root");
@@ -183,6 +184,11 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
 
         lsClient.setBorder(javax.swing.BorderFactory.createTitledBorder("Connected Users"));
         lsClient.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        lsClient.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+                lsClientValueChanged(evt);
+            }
+        });
         jScrollPane3.setViewportView(lsClient);
 
         cmdCall.setText("Call");
@@ -213,49 +219,49 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
 
         jScrollPane2.setViewportView(lsRoomClient);
 
-        cmdRefresh.setText("Refresh List");
-        cmdRefresh.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cmdRefreshActionPerformed(evt);
-            }
-        });
+        lblSelectedUser.setText("{}");
+
+        lblSelectedRoom.setText("{}");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(22, 22, 22)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(cmdRefresh, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 199, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(cmdCall, javax.swing.GroupLayout.DEFAULT_SIZE, 199, Short.MAX_VALUE)
-                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(cmdJoinRoom, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(23, Short.MAX_VALUE))
+                        .addComponent(lblSelectedUser)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(cmdCall, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(lblSelectedRoom)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(cmdJoinRoom, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(16, 16, 16)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cmdCall, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(cmdJoinRoom, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 285, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 321, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 321, Short.MAX_VALUE)
                     .addComponent(jScrollPane3))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cmdRefresh)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(cmdCall, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)
+                    .addComponent(lblSelectedUser)
+                    .addComponent(cmdJoinRoom, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)
+                    .addComponent(lblSelectedRoom))
+                .addGap(4, 4, 4))
         );
 
         pack();
@@ -285,6 +291,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         // TODO add your handling code here:
         int i = lsRoom.getSelectedIndex();
         updateRoomClient(i);
+        lblSelectedRoom.setText((String) lsRoom.getSelectedValue());
     }//GEN-LAST:event_lsRoomMouseClicked
 
     private void cmdCallActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdCallActionPerformed
@@ -301,9 +308,10 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
 
     }//GEN-LAST:event_cmdCallActionPerformed
 
-    private void cmdRefreshActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdRefreshActionPerformed
-        client.sendRefreshLists();
-    }//GEN-LAST:event_cmdRefreshActionPerformed
+    private void lsClientValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_lsClientValueChanged
+        // TODO add your handling code here:
+        lblSelectedUser.setText((String)lsClient.getSelectedValue());
+    }//GEN-LAST:event_lsClientValueChanged
 
     private void myInitComponents() {
         initialInput();
@@ -312,10 +320,10 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
     }
 
     private void initialInput() {
-        final GUIStartup initial = new GUIStartup();
+        final Startup initial = new Startup();
 
         int result = JOptionPane.showConfirmDialog(null, initial,
-                "Enter Display Name and Server Address", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                "Setup Name and Address", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             ServerAddress = initial.txtSAddress.getText();
             clientName = initial.txtUsername.getText();
@@ -334,7 +342,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
             Thread.sleep(100);
             //client.sendMessage(c, "TEST MESSAGE");
         } catch (InterruptedException ex) {
-            Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MainClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -356,9 +364,10 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
             @Override
             public void run() {
                 client.sendMessage(b, "calling");
+                //this starts streaming even before it's picked up on the other end
                 transmitterpipe.startStreamingToUnicast(b.ip);
                 //receiverpipe.startReceivingFromUnicast();
-                calling = new GUICalling();
+                calling = new Calling();
                 calling.lblUser.setText(b.name);
                 calling.cmdMute2.addActionListener(new java.awt.event.ActionListener() {
                     public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -412,9 +421,9 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                caller = new GUICaller();
-                caller.lblCallerID.setText(Integer.toString(b.id));
-                caller.lblIP.setText(b.ip);
+                caller = new Caller();
+               //caller.lblCallerID.setText(Integer.toString(b.id));
+               // caller.lblIP.setText(b.ip);
                 caller.lblUsername.setText(b.name);
                 final Object[] options = {"Place Call"};
                 int result = JOptionPane.showOptionDialog(null, caller, "Call " + b.name, JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
@@ -430,14 +439,14 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
 
     }
 
-    private void reciever(final Network.Message m) {
+    private void receiver(final Network.Message m) {
         cmdCall.setEnabled(false);
-        reciever = new GUICaller();
-        reciever.lblCallerID.setText(Integer.toString(m.sender.id));
-        reciever.lblIP.setText(m.sender.ip);
-        reciever.lblUsername.setText(m.sender.name);
+        receiver = new Caller();
+        //reciever.lblCallerID.setText(Integer.toString(m.sender.id));
+        //reciever.lblIP.setText(m.sender.ip);
+        receiver.lblUsername.setText(m.sender.name);
         final Object[] options = {"Recieve Call"};
-        final JOptionPane pane = new JOptionPane(reciever, JOptionPane.PLAIN_MESSAGE, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+        final JOptionPane pane = new JOptionPane(receiver, JOptionPane.PLAIN_MESSAGE, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
         final JDialog dialog = new JDialog(this, "Call from " + m.sender.name);
         dialog.setContentPane(pane);
         dialog.setModal(false);
@@ -462,7 +471,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                     String value = pane.getValue().toString();
                     System.out.println(pane.getValue());
                     if (value.equals("Recieve Call")) {
-                        recieving(m);
+                        receiving(m);
                     } else {
                         cmdCall.setEnabled(true);
                         client.sendMessage(m.sender, "rejected");
@@ -479,7 +488,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
 
     }
 
-    private void recieving(final Network.Message m) {
+    private void receiving(final Network.Message m) {
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -487,13 +496,13 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                 client.sendMessage(m.sender, "recieved");
                 transmitterpipe.startStreamingToUnicast(m.sender.ip);
                 receiverpipe.startReceivingFromUnicast();
-                receiverpipe.printPipeline();
-                recieving = new GUICalling();
-                recieving.lblUser.setText(m.sender.name);
-                recieving.lblStatus.setText("Call From ");
-                recieving.cmdMute2.addActionListener(new java.awt.event.ActionListener() {
+                //receiverpipe.printPipeline();
+                receiving = new Calling();
+                receiving.lblUser.setText(m.sender.name);
+                receiving.lblStatus.setText("Call From ");
+                receiving.cmdMute2.addActionListener(new java.awt.event.ActionListener() {
                     public void actionPerformed(java.awt.event.ActionEvent evt) {
-                        if (recieving.cmdMute2.isSelected()) {
+                        if (receiving.cmdMute2.isSelected()) {
                             receiverpipe.muteSound();
                             //receiverpipe.stopReceivingFromUnicast();
                         } else {
@@ -503,10 +512,10 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                     }
                 });
                 Object[] options = {"Drop Call"};
-                int result = JOptionPane.showOptionDialog(null, recieving, "recieving from " + m.sender.name, JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+                int result = JOptionPane.showOptionDialog(null, receiving, "receiving from " + m.sender.name, JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
                 try {
                     if (result == JOptionPane.YES_OPTION) {
-                        recieving.timer.stop();
+                        receiving.timer.stop();
 
                         if (receiverpipe.isReceivingFromUnicast()) {
                             client.sendMessage(m.sender, "dropped");
@@ -517,7 +526,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                         }
                         cmdCall.setEnabled(true);
                     } else {
-                        recieving.timer.stop();
+                        receiving.timer.stop();
                         if (receiverpipe.isReceivingFromUnicast()) {
                             client.sendMessage(m.sender, "dropped");
                             receiverpipe.stopReceivingFromUnicast();
@@ -526,7 +535,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
                             transmitterpipe.stopStreamingToUnicast();
                         }
                         cmdCall.setEnabled(true);
-                        Window w = SwingUtilities.getWindowAncestor(recieving);
+                        Window w = SwingUtilities.getWindowAncestor(receiving);
                         closeDialog(w);
                     }
 
@@ -542,7 +551,7 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                multicast = new GUIMulticast();
+                multicast = new Multicast();
                 multicast.lblUser.setText(rooms[lastSelected].name);
                 multicast.cmdMute2.addActionListener(new java.awt.event.ActionListener() {
                     public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -611,8 +620,8 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
         if (b.id != client.getID()) {
             caller(b);
         } else {
-            String infoMessage = "You cannot yourself";
-            String titleBar = "Select Different User";
+            String infoMessage = "You cannot call yourself";
+            String titleBar = "Select a Different User";
             JOptionPane.showMessageDialog(null, infoMessage, titleBar, JOptionPane.INFORMATION_MESSAGE);
         }
 
@@ -645,12 +654,13 @@ public class ClientMain extends javax.swing.JFrame implements EventListener {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton cmdCall;
     private javax.swing.JButton cmdJoinRoom;
-    private javax.swing.JButton cmdRefresh;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JTree jTree1;
+    private javax.swing.JLabel lblSelectedRoom;
+    private javax.swing.JLabel lblSelectedUser;
     private javax.swing.JList lsClient;
     private javax.swing.JList lsRoom;
     private javax.swing.JList lsRoomClient;

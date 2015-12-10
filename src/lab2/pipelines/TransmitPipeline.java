@@ -15,67 +15,51 @@ import lab2.config.Constants;
 
 /**
  * @author Kola
- * @reviewer 
+ * @reviewer
  */
-public class SendingPipeline extends Pipeline {
-    //+------------------------------------------------------------------------+
-    //|************************    VARIABLES     ******************************|
-    //+------------------------------------------------------------------------+
-    //Variables declaration corresponding to elements of the bin.
-    final Element source = ElementFactory.make("alsasrc", "alsasrc");    
+public class TransmitPipeline extends Pipeline {
+
+    //construct elements of the sending pipeline
+    final Element source = ElementFactory.make("alsasrc", "alsasrc");
     final Element tee = ElementFactory.make("tee", "tee");
-    
+
     //Variables declaration corresponding to sub-bins of this bin.
-    private TransmittingBin multicastBin = null;
-    private TransmittingBin unicastBin = null;
+    private TransmitterBin multicastBin = null;
+    private TransmitterBin unicastBin = null;
 
-    //+------------------------------------------------------------------------+
-    //|**********************      CONSTRUCTOR     ****************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Constructor creating the base of the sending pipeline (source, tee).
-    */
-    public SendingPipeline() {
-        // call parent constructor of Pipeline.
-        super("TransmittingPipeline"); 
-        
-        //Adding elements together.
+    public TransmitPipeline() {
+        //obligatory call to Transmitting parent constructor.
+        super("TransmittingPipeline");
+
         addMany(source, tee);
-        
-        //Linking elements together.
-        Pipeline.linkMany(source, tee);
 
+        Pipeline.linkMany(source, tee);
     }
 
-    //+------------------------------------------------------------------------+
-    //|**********************     METHODS     *********************************|
-    //+------------------------------------------------------------------------+
-    //*******************    Start/Stop multicast     **************************
-    
     /**
-     * Plug a multi-cast bin to the sending pipeline.
-     * 
+     * Plugs a multi-cast bin to the sending pipeline.
+     *
      * @param ip is the IP address of the server.
      * @return the SSRC (or -1 if error)
      */
     public long startStreamingToMulticast(String ip) {
         if (multicastBin == null) {
-            
+
             //Manufacture of elements.
-            multicastBin = new TransmittingBin(ip, Constants.MULTICAST_PORT, true, "MULTICAST_TB");
+            multicastBin = new TransmitterBin(ip, Constants.MULTICAST_PORT, true, "MULTICAST_TB");
 
             //Adding elements together.
             add(multicastBin);
-            
+
             //States Synchronization with the parent bin.
             multicastBin.syncStateWithParent();
 
             //Linkaging elements together.
             tee.getRequestPad("src%d").link(multicastBin.getStaticPad("sink"));
-            
+
             //Play the pipeline.
             play();
-            
+
             //Return the SSRC to differentiate different multicast transmission.
             return multicastBin.getSSRC();
         }
@@ -83,7 +67,7 @@ public class SendingPipeline extends Pipeline {
     }
 
     /**
-     * Unplug the multi-cast bin to the sending pipeline.
+     * Remove the multi-cast bin to the sending pipeline.
      */
     public void stopStreamingToMulticast() {
         if (multicastBin != null) {
@@ -91,36 +75,34 @@ public class SendingPipeline extends Pipeline {
             multicastBin = null;
         }
     }
-    //***************************   end   **************************************
-    //*******************    Start/Stop unicast     ****************************
-    
+
     /**
-     * Plug an uni-cast bin to the sending pipeline.
-     * 
+     * Injects a uni-cast bin into the sending pipeline.
+     *
      * @param ip is the IP address of the server.
      */
     public void startStreamingToUnicast(String ip) {
         if (unicastBin == null) {
-            
+
             //Manufacture of elements.
-            unicastBin = new TransmittingBin(ip, Constants.UNICAST_PORT, false, "UNICAST_TB");
-            
+            unicastBin = new TransmitterBin(ip, Constants.UNICAST_PORT, false, "UNICAST_TB");
+
             //Adding elements together.
             add(unicastBin);
-            
+
             //States Synchronization with the parent bin.
             unicastBin.syncStateWithParent();
-            
+
             //Linkaging elements together.
             tee.getRequestPad("src%d").link(unicastBin.getStaticPad("sink"));
-            
+
             //Play the pipeline
             play();
         }
     }
 
     /**
-     * Unplug the uni-cast bin to the sending pipeline.
+     * Removes the uni-cast bin to the sending pipeline.
      */
     public void stopStreamingToUnicast() {
         if (unicastBin != null) {
@@ -128,50 +110,25 @@ public class SendingPipeline extends Pipeline {
             unicastBin = null;
         }
     }
-    //***************************   end   **************************************
-    //*******************    isMulticast/isUnicast     *************************
-    
-    /**
-     * Test if the sending pipeline is Multi-cast.
-     * 
-     * @return true or false.
-     */
+
     public boolean isStreamingToMulticast() {
         return (multicastBin != null);
     }
 
-    /**
-     * Test if the sending pipeline is Uni-cast.
-     * 
-     * @return true or false.
-     */
     public boolean isStreamingToUnicast() {
         return (unicastBin != null);
     }
-    //***************************   end   **************************************
-    //*****************    Mute/Unmute the micro    ****************************
 
-    /**
-     * Mute the micro.
-     */
     public void mutemicro() {
-        source.set("volume",0.0);
+        source.set("volume", 0.0);
     }
-    
-    /**
-     * Un-mute the micro.
-     */
+
     public void unmutemicro() {
-        source.set("volume",1.0);
+        source.set("volume", 1.0);
     }
 
-    //***************************   end   **************************************
-    //*********    Print pipeline for information/debugging     ****************
-
-    /**
-     * Print the pipeline in the console for information/debugging purpose.
-     */
-        public void printPipeline() {
+    /*
+    public void printPipeline() {
 
         List<Element> elements = this.getElements();
 
@@ -194,6 +151,5 @@ public class SendingPipeline extends Pipeline {
                 }
             }
         }
-    }
-    //***************************   end   **************************************
+    } */
 }

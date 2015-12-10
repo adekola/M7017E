@@ -20,34 +20,28 @@ import org.gstreamer.elements.FakeSink;
  * @author Kola
  * @reviewer 
  */
-public class MulticastReceivingBin extends Bin {
-    //+------------------------------------------------------------------------+
-    //|************************    VARIABLES     ******************************|
-    //+------------------------------------------------------------------------+
-    //Variables declaration corresponding to elements of the bin.
+public class MulticastBin extends Bin {
+    
+    //Element related variables
     private final Element udpSource;
     private final Element rtpBin;
     private final Element adder;
     
-    //Variable declaration corresponding to pads of the bin.
+    //pad related variables
     private final Pad source;
 
-    //+------------------------------------------------------------------------+
-    //|**********************      CONSTRUCTOR     ****************************|
-    //+------------------------------------------------------------------------+
-
     /**
-     * Constructor creating a BinMulticastReceiving (udpReceiver, rtpBin, adder).
+     * Constructor creating a MulticastReceivingBin
      * 
      * @param ip is the multi-cast IP address.
      * @param port is the multi-cast port number on the server.
      * @param ssrcIgnore is a variable to manage echo.
      */
-    public MulticastReceivingBin(String ip, int port, final long ssrcIgnore) {
-        // call parent constructor of Pipeline.
+    public MulticastBin(String ip, int port, final long ssrcIgnore) {
+        //obligatory call to parent constructor.
         super("Room_" + ip);
 
-        //Manufacture of elements.
+        //construct elements.
         udpSource = ElementFactory.make("udpsrc", null);
         udpSource.set("multicast-group", ip);
         udpSource.set("auto-multicast", true);
@@ -74,16 +68,16 @@ public class MulticastReceivingBin extends Bin {
                 if (pad.getName().startsWith("recv_rtp_src")) {
 
                     if (pad.getName().contains(String.valueOf(ssrcIgnore))) {
-                        //Route our echo sound in a fake sink.
+                        //if ssrcignore flag is set, kill echo by directing it to a fake sink
                         Element fakesink = new FakeSink((String) null);
-                        MulticastReceivingBin.this.add(fakesink);
+                        MulticastBin.this.add(fakesink);
                         fakesink.syncStateWithParent();
                         pad.link(fakesink.getStaticPad("sink"));
                     }
                     else {
-                        //link a decoder to the new client flux.
-                        DecoderBin decoder = new DecoderBin(true);
-                        MulticastReceivingBin.this.add(decoder);
+                        //connect a decoder to the new incoming client flow.
+                        DecodingBin decoder = new DecodingBin(true);
+                        MulticastBin.this.add(decoder);
                         decoder.syncStateWithParent();
                         pad.link(decoder.getStaticPad("sink"));
                         Pad adderPad = adder.getRequestPad("sink%d");
@@ -93,16 +87,12 @@ public class MulticastReceivingBin extends Bin {
             }
         });
 
-        //Adding elements together.
         addMany(udpSource, rtpBin, adder);
 
-        //Creation of Pads for this bin.
         source = new GhostPad("src", adder.getStaticPad("src"));
         
-        //Adding new Pads.
         addPad(source);
 
-        //Linking elements together.
         Pad pad = rtpBin.getRequestPad("recv_rtp_sink_0");
         udpSource.getStaticPad("src").link(pad);
 
@@ -110,22 +100,16 @@ public class MulticastReceivingBin extends Bin {
         pause();
     }
 
-    //+------------------------------------------------------------------------+
-    //|**********************     METHODS     *********************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Unlink the bin and remove it.
-     */
+    //breaks down the pipeline
     public void dropIt() {
       try {
             Thread.sleep(1500);
         } catch (InterruptedException ex) {
-            Logger.getLogger(SendingPipeline.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TransmitPipeline.class.getName()).log(Level.SEVERE, null, ex);
         }
         Pad downstreamPeer = source.getPeer();
         this.setState(State.NULL);
         ((Bin) this.getParent()).remove(this);
         downstreamPeer.getParentElement().releaseRequestPad(downstreamPeer);
     }
-    //***************************   end   **************************************
 }

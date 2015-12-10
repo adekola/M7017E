@@ -22,42 +22,30 @@ import org.gstreamer.elements.good.RTPBin;
  * @author Kola
  * @reviewer 
  */
-public class TransmittingBin extends Bin {
-    //+------------------------------------------------------------------------+
-    //|************************    VARIABLES     ******************************|
-    //+------------------------------------------------------------------------+
-    //Variables declaration corresponding to subbin of this bin.
-    private final EncoderBin encoder = new EncoderBin();
+public class TransmitterBin extends Bin {
+    
+    //bin related variables.
+    private final EncodingBin encoder = new EncodingBin();
     private final RTPBin rtpBin = new RTPBin("RTPBin");
     
-    //Variables declaration corresponding to elements of this bin.
+    //UDP sink to terminate the sending pipeline
     private final Element udpSink;
     
-    //Variables declaration corresponding to pads of this bin.
+    //Pad variable for the sink.
     private final Pad sink;
 
-    //+------------------------------------------------------------------------+
-    //|**********************      CONSTRUCTOR     ****************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Constructor creating a BinTransmitting (encoderBin, rtpBin, udpSink).
-     * 
-     * @param ip is the IP address of the server.
-     * @param port is the port number of the server.
-     * @param isMulticast true or false this bin is for multi-cast.
-     * @param name is the name of this bin.
-     */
-    public TransmittingBin(String ip, int port, boolean isMulticast, String name) {
+   
+    public TransmitterBin(String ip, int port, boolean isMulticast, String name) {
         // call parent constructor of Pipeline.
         super(name);
         
-        //States Synchronization with the parent bin.
+        //synchronize with the parent bin.
         encoder.syncStateWithParent();
         
         
         Pad rtpSink = rtpBin.getRequestPad("send_rtp_sink_0");
         
-        //Manufacture of elements.
+        //Construct elements.
         udpSink = ElementFactory.make("udpsink", null);
         udpSink.set("host", ip);
         udpSink.set("port", port);
@@ -65,32 +53,21 @@ public class TransmittingBin extends Bin {
             udpSink.set("auto-multicast", true);
         }
         
-        //Adding elements together.
         addMany(encoder, rtpBin, udpSink);
         
-        //Creation of Pads for this bin.
         sink = new GhostPad("sink", encoder.getStaticPad("sink"));
         
-        //Check if active
+        //activate the ghost pad
         sink.setActive(true);
 
-        //Adding new Pads.
         addPad(sink);
         
-        //Linking elements together.
         encoder.getStaticPad("src").link(rtpSink);
         rtpBin.getStaticPad("send_rtp_src_0").link(udpSink.getStaticPad("sink"));
 
     }
 
-    //+------------------------------------------------------------------------+
-    //|**********************     METHODS     *********************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Get the unique ID of a client.
-     * 
-     * @return the unique SSRC ID of the client.
-     */
+    //get the unique SSRC id for the current node
     public long getSSRC() {
         String test = null;
         for (Element element : rtpBin.getElements()) {
@@ -111,23 +88,20 @@ public class TransmittingBin extends Bin {
         return -1;
     }
 
-    /**
-     * Unlink the bin and remove it.
-     */
+    //tear down the bin
     public void dropIt() {
         //wait for 1,5sec to stabilize states
         try {
             Thread.sleep(1500);
         } catch (InterruptedException ex) {
-            Logger.getLogger(SendingPipeline.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TransmitPipeline.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        //get (src) pad connected to -> sink
         Pad sourcePad = sink.getPeer();
-        //get the parent tee element
+
         Tee teeElement = ((Tee) sink.getPeer().getParent());     
         
-        //transmitting bin element
+        //gets the transmitting bin element
         Bin parentBin = ((Bin) this.getParent()); 
         
         //upstreamPeer.setActive(false);
@@ -143,5 +117,4 @@ public class TransmittingBin extends Bin {
  
         teeElement.releaseRequestPad(sourcePad);
     }
-    //***************************   end   **************************************
 }

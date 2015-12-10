@@ -19,27 +19,17 @@ import org.gstreamer.State;
  * @author Kola
  * @reviewer 
  */
-public class UnicastReceivingBin extends Bin {
-    //+------------------------------------------------------------------------+
-    //|************************    VARIABLES     ******************************|
-    //+------------------------------------------------------------------------+
-    //Variables declaration corresponding to elements of this bin.
+public class UnicastBin extends Bin {
+    
+    //declaring the elements for the pipeline.
     private final Element udpSource;
     private final Element rtpBin;
 
     //Variables declaration corresponding to pads of this bin.
     private Pad source;
 
-    //+------------------------------------------------------------------------+
-    //|**********************      CONSTRUCTOR     ****************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Constructor creating a BinUnicatReceiving (udpReceive, rtpBin).
-     * 
-     * @param port is the port for uni-cast on the server.
-     * @param sink is the sink element for this bin.
-     */
-    public UnicastReceivingBin(int port, final Element sink) {
+    
+    public UnicastBin(int port, final Element sink) {
         // call parent constructor of Pipeline.
         super("UnicastReceiver_" + port);
 
@@ -65,22 +55,20 @@ public class UnicastReceivingBin extends Bin {
             public void padAdded(Element element, Pad pad) {
                 if (pad.getName().startsWith("recv_rtp_src")) {
    
-                    DecoderBin decoder = new DecoderBin(false);
-                    UnicastReceivingBin.this.add(decoder);
+                    DecodingBin decoder = new DecodingBin(false);
+                    UnicastBin.this.add(decoder);
                     decoder.syncStateWithParent();
                     pad.link(decoder.getStaticPad("sink"));
                     source = new GhostPad("src" + String.valueOf(System.nanoTime()), decoder.getStaticPad("src"));
                     source.setActive(true);
                     addPad(source);
-                    Element.linkMany(UnicastReceivingBin.this, sink);
+                    Element.linkMany(UnicastBin.this, sink);
                 }
             }
         });
 
-        //Adding elements together.
         addMany(udpSource, rtpBin);
 
-        //Linking elements together.
         Pad pad = rtpBin.getRequestPad("recv_rtp_sink_0");
         udpSource.getStaticPad("src").link(pad);
         
@@ -88,17 +76,12 @@ public class UnicastReceivingBin extends Bin {
         pause();
     }
 
-    //+------------------------------------------------------------------------+
-    //|**********************     METHODS     *********************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Unlink the bin and remove it.
-     */
+    //tears down the bin
     public void dropIt() {
       try {
             Thread.sleep(1500);
         } catch (InterruptedException ex) {
-            Logger.getLogger(SendingPipeline.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TransmitPipeline.class.getName()).log(Level.SEVERE, null, ex);
         }
         Pad downstreamPeer = null;
         if (source != null) {
@@ -110,5 +93,4 @@ public class UnicastReceivingBin extends Bin {
             downstreamPeer.getParentElement().releaseRequestPad(downstreamPeer);
         }
     }
-    //***************************   end   **************************************
 }

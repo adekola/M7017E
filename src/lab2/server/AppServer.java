@@ -20,27 +20,12 @@ import java.util.ArrayList;
  * @reviewer 
  */
 public class AppServer {
-    //+------------------------------------------------------------------------+
-    //|************************    VARIABLES     ******************************|
-    //+------------------------------------------------------------------------+
-    /**
-     * Declaration of a server object with kryonet library.
-     */
+    
     public com.esotericsoftware.kryonet.Server server;
-    /**
-     * Declaration of an Array of chat rooms.
-     */
+    
     public Room[] rooms;
 
-    //+------------------------------------------------------------------------+
-    //|**********************      CONSTRUCTOR     ****************************|
-    //+------------------------------------------------------------------------+
-
-    /**
-     * Constructor creating a new server.
-     * 
-     * @throws IOException
-     */
+    
     public AppServer() throws IOException {
 
         //initialize rooms
@@ -193,26 +178,12 @@ public class AppServer {
 
     }
 
-    //+------------------------------------------------------------------------+
-    //|**********************     METHODS     *********************************|
-    //+------------------------------------------------------------------------+
-
-    /**
-     * Main method creating a new Voice Chat Server instance.
-     * 
-     * @param args
-     * @throws IOException
-     */
+    
     public static void main(String[] args) throws IOException {
         //Log.set(Log.LEVEL_DEBUG);
         new AppServer();
     }
     
-    /**
-     * Get the list of registered clients.
-     * 
-     * @return arrayList of client registered.
-     */
     public ArrayList<Client> getClientsList() {
         Connection[] connections = server.getConnections();
         ArrayList<Client> list = new ArrayList<>();

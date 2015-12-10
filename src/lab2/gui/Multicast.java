@@ -15,16 +15,15 @@ import javax.swing.Timer;
  *
  * @author Kola
  */
-public class GUIMulticast extends javax.swing.JPanel {
+public class Multicast extends javax.swing.JPanel {
 
     /**
-     * Creates new form GUIMulticast
-     */
+     * Creates new form Multicast   */
      private final SimpleDateFormat date = new SimpleDateFormat("HH.mm.ss");
     private long startTime;
     private final ClockListener clock = new ClockListener();
     public final Timer timer = new Timer(53, (ActionListener) clock);
-    public GUIMulticast() {
+    public Multicast (){
         initComponents();
         startTime = System.currentTimeMillis();
         timer.start();
